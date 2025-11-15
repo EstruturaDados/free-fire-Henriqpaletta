@@ -1,0 +1,467 @@
+#include <stdio.h>
+#include <stdlib.h>  
+#include <string.h>  
+#include <time.h>   
+#include <stdbool.h> 
+
+// --- DEFINIÇÃO DAS ESTRUTURAS ---
+
+// Estrutura Item: Usada tanto no vetor quanto no nó da lista.
+struct Item {
+    char nome[30];
+    char tipo[20]; 
+    int quantidade;
+};
+
+// Estrutura No: Representa um elemento na Lista Encadeada.
+struct No {
+    struct Item dados;
+    struct No *proximo;
+};
+
+// --- VARIÁVEIS GLOBAIS DE CONTROLE ---
+
+// Vetor (Lista Sequencial)
+#define MAX_ITENS 10
+struct Item inventarioVetor[MAX_ITENS];
+int contadorVetor = 0;
+
+// Lista Encadeada (Estrutura Dinâmica)
+struct No *cabeca = NULL; // Ponteiro para o primeiro elemento da lista
+
+// Contadores de Busca
+int compSequencial = 0;
+int compBinaria = 0;
+
+// --- PROTÓTIPOS DAS FUNÇÕES ---
+
+// Menu
+void exibirMenuPrincipal();
+void exibirMenuVetor();
+void exibirMenuLista();
+struct Item criarNovoItem();
+
+// Funções do Vetor
+void inserirItemVetor(struct Item novoItem);
+void removerItemVetor(char *nomeRemover);
+void listarItensVetor();
+void ordenarVetor(); // Bubble Sort
+void buscarSequencialVetor(char *nomeBusca);
+void buscarBinariaVetor(char *nomeBusca);
+
+// Funções da Lista Encadeada
+void inserirItemLista(struct Item novoItem);
+void removerItemLista(char *nomeRemover);
+void listarItensLista();
+void buscarSequencialLista(char *nomeBusca);
+void liberarLista();
+
+
+// ==============================================================================
+// === IMPLEMENTAÇÃO DAS FUNÇÕES DO VETOR (LISTA SEQUENCIAL) ===
+// ==============================================================================
+
+/**
+ * @brief Adiciona um item no final do vetor.
+ */
+void inserirItemVetor(struct Item novoItem) {
+    if (contadorVetor >= MAX_ITENS) {
+        printf("\n🛑 Vetor cheio. Remova um item antes de inserir.\n");
+        return;
+    }
+    inventarioVetor[contadorVetor] = novoItem;
+    contadorVetor++;
+    printf("✅ Item inserido no vetor. Total: %d.\n", contadorVetor);
+}
+
+/**
+ * @brief Remove um item por nome e usa deslocamento (shifting) para manter a coerência.
+ */
+void removerItemVetor(char *nomeRemover) {
+    int i, indiceEncontrado = -1;
+
+    // Busca Sequencial (não contamos aqui, pois é parte da remoção)
+    for (i = 0; i < contadorVetor; i++) {
+        if (strcmp(inventarioVetor[i].nome, nomeRemover) == 0) {
+            indiceEncontrado = i;
+            break;
+        }
+    }
+
+    if (indiceEncontrado == -1) {
+        printf("\n❌ Item '%s' nao encontrado no vetor.\n", nomeRemover);
+        return;
+    }
+
+    // Deslocamento (Shifting)
+    for (i = indiceEncontrado; i < contadorVetor - 1; i++) {
+        inventarioVetor[i] = inventarioVetor[i+1];
+    }
+    contadorVetor--;
+    printf("✅ Item '%s' removido do vetor.\n", nomeRemover);
+}
+
+/**
+ * @brief Lista todos os itens do vetor.
+ */
+void listarItensVetor() {
+    if (contadorVetor == 0) {
+        printf("\n❌ Vetor vazio.\n");
+        return;
+    }
+
+    printf("\n--- ITENS NO VETOR (Total: %d) ---\n", contadorVetor);
+    int i;
+    for (i = 0; i < contadorVetor; i++) {
+        printf("[%d] %s (Tipo: %s, Qtd: %d)\n", 
+               i, inventarioVetor[i].nome, inventarioVetor[i].tipo, inventarioVetor[i].quantidade);
+    }
+    printf("----------------------------------\n");
+}
+
+/**
+ * @brief Ordena o vetor por nome usando Bubble Sort.
+ */
+void ordenarVetor() {
+    int i, j;
+    struct Item temp;
+
+    for (i = 0; i < contadorVetor - 1; i++) {
+        for (j = 0; j < contadorVetor - 1 - i; j++) {
+            // Compara os nomes. Se o item atual for "maior" que o proximo (strcmp > 0)
+            if (strcmp(inventarioVetor[j].nome, inventarioVetor[j+1].nome) > 0) {
+                // Troca (Swap)
+                temp = inventarioVetor[j];
+                inventarioVetor[j] = inventarioVetor[j+1];
+                inventarioVetor[j+1] = temp;
+            }
+        }
+    }
+    printf("✅ Vetor ordenado por nome (Bubble Sort).\n");
+}
+
+/**
+ * @brief Realiza busca sequencial e conta comparações.
+ */
+void buscarSequencialVetor(char *nomeBusca) {
+    compSequencial = 0;
+    int i;
+
+    for (i = 0; i < contadorVetor; i++) {
+        compSequencial++; // Conta cada comparação
+        if (strcmp(inventarioVetor[i].nome, nomeBusca) == 0) {
+            printf("✅ Item '%s' encontrado no indice %d.\n", nomeBusca, i);
+            printf("🔢 Comparações realizadas (Sequencial): %d\n", compSequencial);
+            return;
+        }
+    }
+    printf("❌ Item '%s' nao encontrado no vetor.\n", nomeBusca);
+    printf("🔢 Comparações realizadas (Sequencial): %d\n", compSequencial);
+}
+
+/**
+ * @brief Realiza busca binária e conta comparações (requer vetor ordenado).
+ */
+void buscarBinariaVetor(char *nomeBusca) {
+    compBinaria = 0;
+    int inicio = 0;
+    int fim = contadorVetor - 1;
+    int meio;
+    int resultadoComp;
+
+    while (inicio <= fim) {
+        compBinaria++; // Conta cada iteração (comparação)
+        meio = (inicio + fim) / 2;
+        resultadoComp = strcmp(inventarioVetor[meio].nome, nomeBusca);
+
+        if (resultadoComp == 0) {
+            printf("✅ Item '%s' encontrado no indice %d.\n", nomeBusca, meio);
+            printf("🔢 Comparações realizadas (Binária): %d\n", compBinaria);
+            return;
+        } else if (resultadoComp < 0) {
+            inicio = meio + 1; // Item está na metade superior
+        } else {
+            fim = meio - 1; // Item está na metade inferior
+        }
+    }
+
+    printf("❌ Item '%s' nao encontrado no vetor.\n", nomeBusca);
+    printf("🔢 Comparações realizadas (Binária): %d\n", compBinaria);
+}
+
+
+// ==============================================================================
+// === IMPLEMENTAÇÃO DAS FUNÇÕES DA LISTA ENCADEADA (ESTRUTURA DINÂMICA) ===
+// ==============================================================================
+
+/**
+ * @brief Insere um novo item no início da lista.
+ */
+void inserirItemLista(struct Item novoItem) {
+    // 1. Aloca memória para o novo nó
+    struct No *novoNo = (struct No *)malloc(sizeof(struct No));
+    if (novoNo == NULL) {
+        printf("\n🛑 Erro de alocacao de memoria.\n");
+        return;
+    }
+
+    // 2. Preenche os dados e aponta para a cabeça atual
+    novoNo->dados = novoItem;
+    novoNo->proximo = cabeca;
+
+    // 3. Atualiza a cabeça para o novo nó
+    cabeca = novoNo;
+    printf("✅ Item inserido no inicio da lista encadeada.\n");
+}
+
+/**
+ * @brief Remove o primeiro item da lista com o nome especificado.
+ */
+void removerItemLista(char *nomeRemover) {
+    struct No *atual = cabeca;
+    struct No *anterior = NULL;
+
+    // 1. Busca: Procura o nó a ser removido
+    while (atual != NULL && strcmp(atual->dados.nome, nomeRemover) != 0) {
+        anterior = atual;
+        atual = atual->proximo;
+    }
+
+    if (atual == NULL) {
+        printf("\n❌ Item '%s' nao encontrado na lista.\n", nomeRemover);
+        return;
+    }
+
+    // 2. Remoção: Ajusta os ponteiros
+    if (anterior == NULL) {
+        // O nó a ser removido é a cabeça
+        cabeca = atual->proximo;
+    } else {
+        // O nó a ser removido está no meio ou no final
+        anterior->proximo = atual->proximo;
+    }
+
+    // 3. Libera a memória do nó removido
+    free(atual);
+    printf("✅ Item '%s' removido da lista encadeada.\n", nomeRemover);
+}
+
+/**
+ * @brief Lista todos os itens da lista encadeada, percorrendo do início ao fim.
+ */
+void listarItensLista() {
+    if (cabeca == NULL) {
+        printf("\n❌ Lista encadeada vazia.\n");
+        return;
+    }
+
+    printf("\n--- ITENS NA LISTA ENCADEADA ---\n");
+    struct No *atual = cabeca;
+    int i = 0;
+    while (atual != NULL) {
+        printf("[%d] %s (Tipo: %s, Qtd: %d)\n", 
+               i++, atual->dados.nome, atual->dados.tipo, atual->dados.quantidade);
+        atual = atual->proximo;
+    }
+    printf("----------------------------------\n");
+}
+
+/**
+ * @brief Realiza busca sequencial na lista encadeada e conta comparações.
+ */
+void buscarSequencialLista(char *nomeBusca) {
+    compSequencial = 0;
+    struct No *atual = cabeca;
+    int i = 0;
+
+    // Percorre a lista até o fim (NULL)
+    while (atual != NULL) {
+        compSequencial++; // Conta cada nó visitado
+        if (strcmp(atual->dados.nome, nomeBusca) == 0) {
+            printf("✅ Item '%s' encontrado na posicao %d da lista.\n", nomeBusca, i);
+            printf("🔢 Comparações realizadas (Sequencial): %d\n", compSequencial);
+            return;
+        }
+        atual = atual->proximo;
+        i++;
+    }
+
+    printf("❌ Item '%s' nao encontrado na lista encadeada.\n", nomeBusca);
+    printf("🔢 Comparações realizadas (Sequencial): %d\n", compSequencial);
+}
+
+/**
+ * @brief Libera toda a memória alocada dinamicamente para a lista.
+ */
+void liberarLista() {
+    struct No *atual = cabeca;
+    struct No *proximo;
+
+    while (atual != NULL) {
+        proximo = atual->proximo;
+        free(atual); // Libera a memória do nó atual
+        atual = proximo;
+    }
+    cabeca = NULL;
+    printf("\n✅ Memória da lista encadeada liberada com sucesso.\n");
+}
+
+
+// ==============================================================================
+// === FUNÇÕES DE UTILIADADE E MENU ===
+// ==============================================================================
+
+/**
+ * @brief Cria e retorna um novo item com dados lidos do usuário.
+ */
+struct Item criarNovoItem() {
+    struct Item novo;
+    printf("\n--- DADOS DO NOVO ITEM ---\n");
+    printf("Nome: ");
+    scanf("%29s", novo.nome); 
+    printf("Tipo (arma, cura, municao): ");
+    scanf("%19s", novo.tipo);
+    printf("Quantidade: ");
+    scanf("%d", &novo.quantidade);
+    return novo;
+}
+
+/**
+ * @brief Exibe o menu principal.
+ */
+void exibirMenuPrincipal() {
+    printf("\n============================================\n");
+    printf(" ESCOLHA A ESTRUTURA (AVENTUREIRO)\n");
+    printf("============================================\n");
+    printf("1. Operar com Vetor (Lista Sequencial)\n");
+    printf("2. Operar com Lista Encadeada (Estrutura Dinamica)\n");
+    printf("0. Sair e Liberar Memoria\n");
+    printf("--------------------------------------------\n");
+    printf("Opcao: ");
+}
+
+/**
+ * @brief Exibe o menu de operações do Vetor.
+ */
+void exibirMenuVetor() {
+    printf("\n--- OPERAÇÕES EM VETOR ---\n");
+    printf("1. Inserir\n");
+    printf("2. Remover\n");
+    printf("3. Listar\n");
+    printf("4. Ordenar (Bubble Sort)\n");
+    printf("5. Buscar Sequencial\n");
+    printf("6. Buscar Binaria (Requer Ordenacao!)\n");
+    printf("0. Voltar ao Menu Principal\n");
+    printf("Opcao: ");
+}
+
+/**
+ * @brief Exibe o menu de operações da Lista Encadeada.
+ */
+void exibirMenuLista() {
+    printf("\n--- OPERAÇÕES EM LISTA ENCADEADA ---\n");
+    printf("1. Inserir (no inicio)\n");
+    printf("2. Remover (por nome)\n");
+    printf("3. Listar\n");
+    printf("4. Buscar Sequencial\n");
+    printf("0. Voltar ao Menu Principal\n");
+    printf("Opcao: ");
+}
+
+// ==============================================================================
+// === FUNÇÃO PRINCIPAL (MAIN) ===
+// ==============================================================================
+
+int main() {
+    int opcaoPrincipal, opcaoEstrutura;
+    char nomeBusca[30];
+    char nomeRemover[30];
+    
+    // Looping principal de escolha de estrutura
+    do {
+        exibirMenuPrincipal();
+        if (scanf("%d", &opcaoPrincipal) != 1) {
+            printf("\nOpcao invalida. Tente novamente.\n");
+            while (getchar() != '\n');
+            continue;
+        }
+
+        switch (opcaoPrincipal) {
+            case 1: // Vetor
+                do {
+                    listarItensVetor();
+                    exibirMenuVetor();
+                    if (scanf("%d", &opcaoEstrutura) != 1) {
+                        printf("\nOpcao invalida. Tente novamente.\n");
+                        while (getchar() != '\n');
+                        continue;
+                    }
+
+                    switch (opcaoEstrutura) {
+                        case 1: inserirItemVetor(criarNovoItem()); break;
+                        case 2: 
+                            printf("Nome para remover: ");
+                            scanf("%29s", nomeRemover); 
+                            removerItemVetor(nomeRemover); 
+                            break;
+                        case 3: listarItensVetor(); break;
+                        case 4: ordenarVetor(); break;
+                        case 5: 
+                            printf("Nome para Busca Sequencial: ");
+                            scanf("%29s", nomeBusca); 
+                            buscarSequencialVetor(nomeBusca); 
+                            break;
+                        case 6: 
+                            printf("Nome para Busca Binaria: ");
+                            scanf("%29s", nomeBusca); 
+                            buscarBinariaVetor(nomeBusca); 
+                            break;
+                        case 0: break;
+                        default: printf("\nOpcao invalida.\n"); break;
+                    }
+                } while (opcaoEstrutura != 0);
+                break;
+
+            case 2: // Lista Encadeada
+                do {
+                    listarItensLista();
+                    exibirMenuLista();
+                    if (scanf("%d", &opcaoEstrutura) != 1) {
+                        printf("\nOpcao invalida. Tente novamente.\n");
+                        while (getchar() != '\n');
+                        continue;
+                    }
+
+                    switch (opcaoEstrutura) {
+                        case 1: inserirItemLista(criarNovoItem()); break;
+                        case 2: 
+                            printf("Nome para remover: ");
+                            scanf("%29s", nomeRemover); 
+                            removerItemLista(nomeRemover); 
+                            break;
+                        case 3: listarItensLista(); break;
+                        case 4: 
+                            printf("Nome para Busca Sequencial: ");
+                            scanf("%29s", nomeBusca); 
+                            buscarSequencialLista(nomeBusca); 
+                            break;
+                        case 0: break;
+                        default: printf("\nOpcao invalida.\n"); break;
+                    }
+                } while (opcaoEstrutura != 0);
+                break;
+
+            case 0:
+                // Liberação de memória (Requisito)
+                liberarLista();
+                printf("\nPrograma finalizado. Sucesso na comparação de estruturas! 👍\n");
+                break;
+
+            default:
+                printf("\nOpcao invalida.\n");
+        }
+
+    } while (opcaoPrincipal != 0);
+
+    return 0;
+}
